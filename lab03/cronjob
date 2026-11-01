@@ -1,0 +1,11 @@
+# Задачи cron для скрипта currency_exchange_rate.py
+# Формат строки: минута час день_месяца месяц день_недели команда
+# python3 указан полным путём, т.к. cron ищет команды только в /usr/bin и /bin
+# \% - экранированный символ %, без "\" cron считает % переводом строки
+# >> /var/log/cron.log 2>&1 - дописываем вывод и ошибки скрипта в лог
+
+# Каждый день в 6:00 - курс MDL к EUR за предыдущий день (yesterday - вчерашняя дата)
+0 6 * * * /usr/local/bin/python3 /app/currency_exchange_rate.py MDL EUR $(date -d "yesterday" +\%Y-\%m-\%d) >> /var/log/cron.log 2>&1
+
+# Каждую пятницу (5) в 17:00 - курс MDL к USD за предыдущую неделю (last week - дата неделю назад)
+0 17 * * 5 /usr/local/bin/python3 /app/currency_exchange_rate.py MDL USD $(date -d "last week" +\%Y-\%m-\%d) >> /var/log/cron.log 2>&1

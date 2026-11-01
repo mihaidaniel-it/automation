@@ -1,0 +1,13 @@
+services:
+  cron:
+    # Собираем образ из Dockerfile в текущей папке (lab03)
+    build: .
+    # Переменные окружения для скрипта: адрес сервиса lab02prep и API-ключ.
+    # localhost внутри контейнера - это сам контейнер, поэтому к сервису
+    # на компьютере обращаемся через host.docker.internal
+    environment:
+      API_URL: http://host.docker.internal:8080/
+      API_KEY: EXAMPLE_API_KEY
+    # Чтобы host.docker.internal работал и на Linux (в Docker Desktop он есть по умолчанию)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
