@@ -1,0 +1,43 @@
+services:
+  # Jenkins Controller - главный сервер Jenkins с веб-интерфейсом
+  jenkins-controller:
+    image: jenkins/jenkins:lts
+    container_name: jenkins-controller
+    # 8080 - веб-интерфейс Jenkins, 50000 - порт для подключения агентов
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    # Настройки, плагины и задачи Jenkins хранятся в томе и не теряются при перезапуске
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    networks:
+      - jenkins-network
+
+  # SSH-агент - контейнер, на котором Jenkins по SSH запускает сборки
+  ssh-agent:
+    # Собираем образ из нашего Dockerfile (jenkins/ssh-agent + PHP)
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ssh-agent
+    # Публичный SSH-ключ из файла .env - агент пускает только того, у кого есть пара к нему
+    environment:
+      - JENKINS_AGENT_SSH_PUBKEY=${JENKINS_AGENT_SSH_PUBKEY}
+    # Рабочая папка агента: сюда Jenkins скачивает проект и выполняет сборку
+    volumes:
+      - jenkins_agent_volume:/home/jenkins/agent
+    # Агент запускается после контроллера
+    depends_on:
+      - jenkins-controller
+    networks:
+      - jenkins-network
+
+# Тома Docker для хранения данных Jenkins и агента
+volumes:
+  jenkins_home:
+  jenkins_agent_volume:
+
+# Общая сеть: в ней контроллер находит агента по имени ssh-agent
+networks:
+  jenkins-network:
+    driver: bridge

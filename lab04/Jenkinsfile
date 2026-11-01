@@ -1,0 +1,48 @@
+pipeline {
+    // Pipeline выполняется на агенте с меткой php-agent (наш SSH-агент)
+    agent {
+        label 'php-agent'
+    }
+
+    stages {
+        stage('Install Dependencies') {
+            steps {
+                // Подготовка проекта: скачиваем код, создаем базу данных и копируем тесты
+                echo 'Preparing project...'
+                // Скачиваем проект containers08 из GitHub в рабочую папку агента
+                git branch: 'main', url: 'https://github.com/mihaidaniel-it/containers08.git'
+                // Удаляем базу от прошлой сборки и создаем новую из sql/schema.sql
+                sh 'rm -f /var/www/db/db.sqlite && sqlite3 /var/www/db/db.sqlite < sql/schema.sql'
+                // Копируем тесты в папку site, т.к. они подключают ../config.php и ../modules
+                sh 'cp -r tests site/'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                // Запуск тестов
+                echo 'Running tests...'
+                // Запускаем тесты и сохраняем их вывод в файл tests.log
+                sh 'php site/tests/tests.php > tests.log'
+                // Выводим результат тестов в консоль Jenkins
+                sh 'cat tests.log'
+                // Фреймворк тестов не возвращает код ошибки, если тест не прошел,
+                // поэтому ищем в выводе строки с ERROR и в этом случае завершаем этап с ошибкой
+                sh 'if grep ERROR tests.log; then exit 1; fi'
+            }
+        }
+    }
+
+    // Действия после завершения pipeline
+    post {
+        always {
+            echo 'Pipeline completed.'
+        }
+        success {
+            echo 'All stages completed successfully!'
+        }
+        failure {
+            echo 'Errors detected in the pipeline.'
+        }
+    }
+}
